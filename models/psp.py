@@ -46,11 +46,16 @@ class pSp(nn.Module):
             self.decoder.load_state_dict(get_keys(ckpt, 'decoder'), strict=True)
             self.__load_latent_avg(ckpt)
         else:
+            #初始化权重
             print('Loading encoders weights from irse50!')
+            #加载irse的权重
             encoder_ckpt = torch.load(model_paths['ir_se50'])
             self.encoder.load_state_dict(encoder_ckpt, strict=False)
             print('Loading decoder weights from pretrained!')
+
             ckpt = torch.load(self.opts.stylegan_weights)
+            #这个是什么啊？
+            #load_state_dict是字典，将神经网络层的参数映射到这里保存,decoder是nn.Module下的类
             self.decoder.load_state_dict(ckpt['g_ema'], strict=False)
             self.__load_latent_avg(ckpt, repeat=self.encoder.style_count)
 

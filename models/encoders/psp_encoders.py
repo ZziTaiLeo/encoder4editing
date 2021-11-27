@@ -185,6 +185,7 @@ class Encoder4Editing(Module):
 
         # Infer main W and duplicate it
         w0 = self.styles[0](c3)
+        #w是复制完18个变量的，shape = (18,512)
         w = w0.repeat(self.style_count, 1, 1).permute(1, 0, 2)
         stage = self.progressive_stage.value
         features = c3
@@ -197,6 +198,7 @@ class Encoder4Editing(Module):
                 features = p1
             delta_i = self.styles[i](features)
             w[:, i] += delta_i
+        #返回的是经过偏移合成的
         return w
 
 

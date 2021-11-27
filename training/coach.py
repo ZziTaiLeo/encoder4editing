@@ -2,6 +2,7 @@ import os
 import random
 import matplotlib
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 matplotlib.use('Agg')
 
@@ -10,7 +11,7 @@ from torch import nn, autograd
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
-
+import numpy as np
 from utils import common, train_utils
 from criteria import id_loss, moco_loss
 from configs import data_configs
@@ -24,7 +25,6 @@ from training.ranger import Ranger
 
 random.seed(0)
 torch.manual_seed(0)
-
 
 class Coach:
     def __init__(self, opts, prev_train_checkpoint=None):
@@ -55,6 +55,7 @@ class Coach:
             self.discriminator = LatentCodesDiscriminator(512, 4).to(self.device)
             self.discriminator_optimizer = torch.optim.Adam(list(self.discriminator.parameters()),
                                                             lr=opts.w_discriminator_lr)
+            # LatentCodePool里缓存着w latent code,但这个real 和fake干啥的？
             self.real_w_pool = LatentCodesPool(self.opts.w_pool_size)
             self.fake_w_pool = LatentCodesPool(self.opts.w_pool_size)
 
@@ -121,7 +122,9 @@ class Coach:
                 # Logging related
                 if self.global_step % self.opts.image_interval == 0 or (
                         self.global_step < 1000 and self.global_step % 25 == 0):
-                    self.parse_and_log_images(id_logs, x, y, y_hat, title='images/train/faces')
+                    # self.parse_and_log_images(id_logs, x, y, y_hat, title='images/train/faces',display_count=2)
+                    self.parse_and_log_images(id_logs, x, y, y_hat, title='images/train/faces', display_count=1)
+
                 if self.global_step % self.opts.board_interval == 0:
                     self.print_metrics(loss_dict, prefix='train')
                     self.log_metrics(loss_dict, prefix='train')
@@ -148,11 +151,15 @@ class Coach:
                 if self.opts.progressive_steps:
                     self.check_for_progressive_training_update()
 
+                #del cache
+                del x, y, y_hat,val_loss_dict,loss,loss_dict, encoder_loss_dict
+                torch.cuda.empty_cache()
+
     def check_for_progressive_training_update(self, is_resume_from_ckpt=False):
         for i in range(len(self.opts.progressive_steps)):
             if is_resume_from_ckpt and self.global_step >= self.opts.progressive_steps[i]:  # Case checkpoint
                 self.net.encoder.set_progressive_stage(ProgressiveStage(i))
-            if self.global_step == self.opts.progressive_steps[i]:   # Case training reached progressive step
+            if self.global_step == self.opts.progressive_steps[i]:  # Case training reached progressive step
                 self.net.encoder.set_progressive_stage(ProgressiveStage(i))
 
     def validate(self):
@@ -260,6 +267,18 @@ class Coach:
             loss_dict['total_delta_loss'] = float(total_delta_loss)
             loss += self.opts.delta_norm_lambda * total_delta_loss
 
+        # -------约束帧之间的w----
+        if self.opts.constraint_w:
+            # first_w
+            w = latent[:, 0, :]
+            loss_constraint_w = 0
+            # 计算l2范数
+            for i in range(1, (w.shape[0])):
+                # 计算相邻的帧的范数
+                loss_constraint_w += torch.norm((w[i, :] - w[i - 1, :]), p=2, keepdim=True)
+            loss_dict['loss_constraint_w'] = float(loss_constraint_w)
+            loss += loss_constraint_w
+
         if self.opts.id_lambda > 0:  # Similarity loss
             loss_id, sim_improvement, id_logs = self.id_loss(y_hat, y, x)
             loss_dict['loss_id'] = float(loss_id)
@@ -293,7 +312,7 @@ class Coach:
         for key, value in metrics_dict.items():
             print('\t{} = '.format(key), value)
 
-    def parse_and_log_images(self, id_logs, x, y, y_hat, title, subscript=None, display_count=2):
+    def parse_and_log_images(self, id_logs, x, y, y_hat, title, subscript=None, display_count=1):
         im_data = []
         for i in range(display_count):
             cur_im_data = {
@@ -345,7 +364,7 @@ class Coach:
     def is_progressive_training(self):
         return self.opts.progressive_steps is not None
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Discriminator ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Discriminator ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
     def is_training_discriminator(self):
         return self.opts.w_discriminator_lambda > 0

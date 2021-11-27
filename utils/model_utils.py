@@ -1,8 +1,11 @@
+import sys
+
 import torch
 import argparse
 from models.psp import pSp
 from models.encoders.psp_encoders import Encoder4Editing
-
+import os
+sys.path.append('..')
 
 def setup_model(checkpoint_path, device='cuda'):
     ckpt = torch.load(checkpoint_path, map_location='cpu')
@@ -12,7 +15,7 @@ def setup_model(checkpoint_path, device='cuda'):
     opts['device'] = device
     opts = argparse.Namespace(**opts)
 
-    net = pSp(opts)
+    net = pSp(opts)  # Pyramid Scene Parsing Network
     net.eval()
     net = net.to(device)
     return net, opts

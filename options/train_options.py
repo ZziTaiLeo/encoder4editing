@@ -79,6 +79,9 @@ class TrainOptions:
         self.parser.add_argument('--update_param_list', nargs='+', type=str, default=None,
                                  help="Name of training parameters to update the loaded training checkpoint")
 
+        #约束w
+        self.parser.add_argument('--constraint_w',default=False,type=bool,help='add l2 of w to  constraint w in batch')
+
     def parse(self):
         opts = self.parser.parse_args()
         return opts

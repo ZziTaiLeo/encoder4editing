@@ -1,0 +1,64 @@
+# Configuration File
+#
+# The configuration file is arranged with key=value
+# The spaces are ignored, so use them as comfortable, but don't use them for real values.
+# This # is for comments  
+#
+# classifiers directory
+classifiers=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/libs/classifiers_linux/
+
+# ROC directory which contains source to calculate ROC stats
+ROC_dir=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/libs/ROC/
+
+# the location of the pmk library
+pmk=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/libs/pmk/linux64/
+
+# the location of the LLC library
+llc=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/libs/LLC/
+
+# the location of the emgmm library
+emgmm=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/libs/emgmm
+
+# the location of a scratch folder to be used internally by the pmk
+pmk_scratch=/tmp/itay/pmk_scratch/
+
+# lvfw descriptors DB root
+DB_root=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/lvfw/lvfw_DB/descriptors_DB
+
+# meta data .mat which contains the video names, video labels, splits and
+# the descriptors
+meta_data=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/lvfw/lvfw_DB/meta_data
+
+# headpose DB root - contains the three head oriented vectors for each frame
+headpose = /a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/lvfw/lvfw_DB/headpose_DB
+
+# the results directory - the directory where the results are stored
+results_dir=/a/home/cc/students/cs/itaymaoz/thesis/MatlabSources/lvfw/results/
+
+# methods to be used
+# 
+# examples:
+# methods=all
+# methods = pose, algebraic, MBGS
+#
+# this example is equivalent to all
+=======
+# methods = basic, pose, algebraic, CMSM, PMK, LLC, MBGS, MBGS_sanity
+# methods = basic, MBGS
+methods = all
+
+# MBGS configuration - define the type of MBGS to use and its parameters
+#
+# MBGS_type should be either:
+#   1: knn - use the first MBGS_KNN nearest neighbors out of the background 
+#      for each frame
+#   2: fixed background size - fill the background with the nearest neighbors 
+#      until the background set size is MBGS_BG_SIZE 
+#   3: double fixed background size - same as (2), but do it again with 
+#      2 * MBGS_BG_SIZE, and combine the results
+#   4: knn and fixed background size combined - combine the results of 1 and 2
+MBGS_type = 2
+MBGS_knn = 20
+MBGS_bg_size = 200
+MBGS_num_of_side_splits = 1
+
